@@ -46,12 +46,23 @@
 
 	"use strict";
 	
-	var _test = __webpack_require__(1);
+	__webpack_require__(1);
+	
+	var _test = __webpack_require__(2);
+	
+	// server.js = the entry into our application!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	
 	(0, _test.testo)();
+	console.log("===> From SERVER");
 
 /***/ },
 /* 1 */
+/***/ function(module, exports) {
+
+	module.exports = require("source-map-support/register");
+
+/***/ },
+/* 2 */
 /***/ function(module, exports) {
 
 	'use strict';

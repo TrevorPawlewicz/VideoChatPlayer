@@ -1,0 +1,22 @@
+{
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es6": true,
+        "node": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "sourceType": "module"
+    },
+    "ecmaFeatures": {
+        "templateStrings": true
+    },
+    "rules": {
+        "no-console": 0,
+        "no-extra-semi": 0
+    },
+    "globals": {
+        "Excetion": false
+    }
+}

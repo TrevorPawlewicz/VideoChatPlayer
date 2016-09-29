@@ -3,6 +3,7 @@ import webpack from "webpack";
 import chalk from "chalk";
 import rimraf from "rimraf";
 import {create as createServerConfig} from "./webpack.server";
+import {create as createServerConfig} from "./webpack.client";
 
 const $ = require("gulp-load-plugins")();
 
@@ -22,10 +23,20 @@ gulp.task("dev", gulp
     gulp.parallel(
         devServerWatch,
         devServerReload)));
-        
+
 // production
 gulp.task("prod:server", gulp.series("clean:server", prodServerBuild));
+gulp.task("prod:client", gulp.series("clean:client", prodClientBuild));
+gulp.task("prod", gulp.series("clean", gulp.parallel(prodServerBuild, prodClientBuild)));
 
+// PRIVATE CLIENT TASKS -------------------------------------------------------
+function prodClientBuild (callback) {
+    const compiler = webpack(createClientConfig(false));
+    compiler.run((error, stats) => {
+        outputWebpack("Prod:Client", error, stats);
+        callback(); // gulp needs to be told we are done with task
+    });
+};
 
 
 // PRIVATE SERVER TASKS -------------------------------------------------------

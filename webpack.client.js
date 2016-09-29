@@ -6,6 +6,8 @@ const vendorModules = ["jquery"]; // need lodash??????????????????????????????
 
 const dirname = path.resolve("./"); // work-around for webpack from server
 
+
+
 function createConfig (isDebug) {
     const devTool = isDebug ? "eval-source-map" : "source-map";
     const plugins = [new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.js")];

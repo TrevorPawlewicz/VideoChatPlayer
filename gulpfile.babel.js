@@ -14,6 +14,7 @@ gulp.task("clean:server", callback => rimraf("./build", callback));
 gulp.task("clean:client", callback => rimraf("./public/build", callback));
 gulp.task("clean", gulp.parallel("clean:server", "clean:client"));
 
+// development
 gulp.task("dev:server", gulp.series("clean:server", devServerBuild));
 gulp.task("dev", gulp
     .series("clean",
@@ -21,7 +22,8 @@ gulp.task("dev", gulp
     gulp.parallel(
         devServerWatch,
         devServerReload)));
-
+        
+// production
 gulp.task("prod:server", gulp.series("clean:server", prodServerBuild));
 
 
@@ -30,19 +32,20 @@ gulp.task("prod:server", gulp.series("clean:server", prodServerBuild));
 const devServerWebpack = webpack(createServerConfig(true));//from webpack.server.js export
 const prodServerWebpack = webpack(createServerConfig(false));
 
+// development
 function devServerBuild (callback) {
     devServerWebpack.run((error, stats) => {
         outputWebpack("Dev:Server", error, stats);
         callback(); // gulp needs to be told we are done with task
     });
 };
-
+// development
 function devServerWatch () {
     devServerWebpack.watch({}, (error, stats) => {
         outputWebpack("Dev:Server", error, stats);
     });
 };
-
+// development
 function devServerReload () {
     return $.nodemon({
         script: "./build/server.js",
@@ -54,6 +57,7 @@ function devServerReload () {
     });
 }
 
+// production
 function prodServerBuild (callback) {
     prodServerWebpack.run((error, stats) => {
         outputWebpack("Prod:Server", error, stats);

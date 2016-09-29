@@ -60,24 +60,53 @@
 	
 	var _socket2 = _interopRequireDefault(_socket);
 	
+	var _chalk = __webpack_require__(5);
+	
+	var _chalk2 = _interopRequireDefault(_chalk);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	// server.js = the entry into our application!!!!!!!!!!!!!!!!!
 	var isDevelopment = process.env.NODE_ENV !== "production";
 	
+	//----------------------------------------------------------------------------
 	// SETUP:
+	// server.js = the entry into our application!!!!!!!!!!!!!!!!!
 	var app = (0, _express2.default)();
 	var server = new _http2.default.Server(app);
 	var io = (0, _socket2.default)(server);
 	
+	//----------------------------------------------------------------------------
 	// Client webpack
+	if (process.env.USE_WEBPACK === "true") {
+	    var webpackMiddleware = __webpack_require__(6),
+	        webpackHotMiddleware = __webpack_require__(7),
+	        webpack = __webpack_require__(8),
+	        clientConfig = __webpack_require__(9);
 	
+	    var compiler = webpack(clientConfig);
+	    app.use(webpackMiddleware(compiler, {
+	        publicPath: "/build/",
+	        stats: {
+	            colors: true,
+	            chunks: false,
+	            asstes: false,
+	            timings: false,
+	            modules: false,
+	            hash: false,
+	            version: false
+	        }
+	    }));
+	    app.use(webpackHotMiddleware(compiler));
 	
+	    console.log(_chalk2.default.bgRed("Using WebPack Dev Middleware! FOR DEV ONLY!!!"));
+	}
+	
+	//----------------------------------------------------------------------------
 	// Configure Express
 	app.set("view engine", "jade");
 	app.use(_express2.default.static("publc"));
 	
-	var useExternalStyles = process.env.NODE_ENV;
+	var useExternalStyles = isDevelopment;
 	// our only route:
 	app.get("/", function (req, res) {
 	    res.render("index", {
@@ -85,14 +114,17 @@
 	    });
 	});
 	
+	//----------------------------------------------------------------------------
 	// Modules
 	
 	
+	//----------------------------------------------------------------------------
 	// socket
 	io.on("connection", function (socket) {
 	    console.log("===> Got connection from: " + socket.request.connection.remoteAddress);
 	});
 	
+	//----------------------------------------------------------------------------
 	// startup
 	var port = process.env.PORT || 3000;
 	function startServer() {
@@ -102,6 +134,7 @@
 	};
 	
 	startServer();
+	//----------------------------------------------------------------------------
 
 /***/ },
 /* 1 */
@@ -126,6 +159,106 @@
 /***/ function(module, exports) {
 
 	module.exports = require("socket.io");
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	module.exports = require("chalk");
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack-dev-middleware");
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack-hot-middleware");
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack");
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	var path = __webpack_require__(10);
+	var webpack = __webpack_require__(8);
+	var ExtractTextPlugin = __webpack_require__(11);
+	
+	var vendorModules = ["jquery"]; // need lodash??????????????????????????????
+	
+	var dirname = path.resolve("./"); // work-around for webpack from server
+	
+	
+	function createConfig(isDebug) {
+	    var devTool = isDebug ? "eval-source-map" : "source-map";
+	    var plugins = [new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.js")];
+	
+	    var cssLoader = { test: /\.css$/, loader: "style!css" };
+	    var sassLoader = { test: /\.scss$/, loader: "style!css!sass" };
+	    var appEntry = ['./src/client/application.js']; // might load up diff files
+	
+	    // IS production:
+	    if (!isDebug) {
+	        plugins.push(new webpack.optimize.UglifyJsPlugin());
+	        plugins.push(new ExtractTextPlugin("[name].css"));
+	
+	        cssLoader.loader = ExtractTextPlugin.extract("style", "css");
+	        sassLoader.loader = ExtractTextPlugin.extract("style", "css!sass");
+	    } else {
+	        // Dev mode:
+	        plugins.push(new webpack.HotModuleReplacementPlugin());
+	        appEntry.splice(0, 0, "webpack-hot-middleware/client");
+	    }
+	
+	    // return WEBPACK Config:---------------------------------------
+	    return {
+	        devtool: devTool,
+	        entry: {
+	            application: appEntry,
+	            vendor: vendorModules
+	        },
+	        output: {
+	            path: path.join(dirname, "public", "build"),
+	            filename: "[name].js",
+	            publicPath: "/build/"
+	        },
+	        resolve: {
+	            alias: {
+	                shared: path.join(dirname, "src", "shared")
+	            }
+	        },
+	        module: {
+	            loaders: [{ test: /\.js$/, loader: "babel", exclude: /node_modules/ }, { test: /\.js$/, loader: "eslint", exclude: /node_modules/ }, { test: /\.(png|jpg|jpeg|gif|woff|tff|eot|svg|woff2)/, loader: "url-loader?limit=1024" }, cssLoader, sassLoader]
+	        }
+	
+	    };
+	}; //--------------------------------------------------------------------------
+	
+	
+	module.exports = createConfig(true);
+	module.exports.create = createConfig;
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	module.exports = require("path");
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	module.exports = require("extract-text-webpack-plugin");
 
 /***/ }
 /******/ ]);

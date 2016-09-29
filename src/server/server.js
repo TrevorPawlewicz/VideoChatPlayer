@@ -1,8 +1,29 @@
 // server.js = the entry into our application!!!!!!!!!!!!!!!!!
-
 import "source-map-support/register";
 
-import {testo} from "shared/test";
+import express from "express";
+import http from "http";
+import socketIo from "socket.io";
 
-testo();
-console.log("===> From SERVER");
+// SETUP
+
+
+
+
+// Client webpack
+
+
+
+
+// Modules
+
+
+
+
+// socket
+
+
+
+
+
+// startup

@@ -50,7 +50,7 @@
 	
 	var _test = __webpack_require__(2);
 	
-	// server.js = the entry into our application!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	// server.js = the entry into our application!!!!!!!!!!!!!!!!!
 	
 	(0, _test.testo)();
 	console.log("===> From SERVER");

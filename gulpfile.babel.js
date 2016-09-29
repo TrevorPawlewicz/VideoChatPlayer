@@ -3,7 +3,7 @@ import webpack from "webpack";
 import chalk from "chalk";
 import rimraf from "rimraf";
 import {create as createServerConfig} from "./webpack.server";
-import {create as createServerConfig} from "./webpack.client";
+import {create as createClientConfig} from "./webpack.client";
 
 const $ = require("gulp-load-plugins")();
 

@@ -9,6 +9,10 @@ import {Observable} from "rxjs";
 
 import {ObservableSocket} from "shared/observable-socket";
 
+import {UsersModule} from "./modules/users";
+import {PlaylistModule} from "./modules/playlist";
+import {ChatModule} from "./modules/chat";
+
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 //----------------------------------------------------------------------------
@@ -56,9 +60,13 @@ app.get("/", (req, res) => {
         useExternalStyles
     });
 });
+// ---------------------------------------------------------------------------
+// Services
+const videoServices = [new YoutubeService("{fixme}")];
+const playlistRepository = new FileRepository("./data/playlist.json");
 
 //----------------------------------------------------------------------------
-// Modules
+// Modules (ORDER MATTERS! some depend on others)
 const users = new UsersModule(io);
 const chat = new ChatModule(io, users);
 const playlist = new PlaylistModule(io, users, playlistRepository, videoServices);
@@ -96,5 +104,16 @@ function startServer () {
     });
 };
 
-startServer();
+Observable.merge(...modules.map(m => m.init$()))
+	.subscribe({
+		complete() {
+			startServer();
+		},
+
+		error(error) {
+			console.error(`COuld not init module: ${error.stack || error}`);
+		}
+	});
+
+//startServer(); not needed because of the Observable.merge...
 //----------------------------------------------------------------------------

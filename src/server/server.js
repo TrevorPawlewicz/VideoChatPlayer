@@ -68,10 +68,13 @@ io.on("connection", socket => {
     console.log(`===> Got connection from: ${socket.request.connection.remoteAddress}`);
 
     const client = new ObservableSocket(socket);
-    client.onAction("login", creds => {
-        return Observable.of({});
-    });
 
+	for (let mod of modules) {
+		mod.registerClient(client);
+	}
+	for (let mod of modules) {
+		mod.clientRegistered(client);
+    }
     // // test-o import:-----------------------------------------------------------
     // let index = 0;
     // setInterval(() => {

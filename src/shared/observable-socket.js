@@ -1,5 +1,11 @@
 import {Observable, ReplaySubject} from "rxjs";
 
+export function clientMessage(message) {
+	const error = new Error(message);
+	error.clientMessage = message;
+	return error;
+}
+
 export class ObservableSocket {
     get isConnected() { return this._state.isConnected; }
     get isReconnecting() { return this._state.isReconnecting; }
@@ -92,10 +98,62 @@ export class ObservableSocket {
     //-------------------------------
     // (On) Sever side:
     onAction(action, callback) {
-        this._socket.on(action, (...args) => {
-            console.log(args);
-        });
+        this._socket.on(action, (arg, requestId) => {
+			try {
+				const value = callback(arg);
+				if (!value) { // no value
+					this._socket.emit(action, null, requestId);
+					return;
+				}
+
+				if (typeof(value.subscribe) !== "function") {
+					this._socket.emit(action, value, requestId);
+					return;
+				}
+
+				let hasValue = false;
+				value.subscribe({
+					next: (item) => {
+						if (hasValue)
+							throw new Error(`Action ${action} produced more than one value.`);
+
+						this._socket.emit(action, item, requestId);
+						hasValue = true;
+					},
+
+					error: (error) => {
+						this._emitError(action, requestId, error);
+						console.error(error.stack || error);
+					},
+
+					complete: () => {
+						if (!hasValue)
+							this._socket.emit(action, null, requestId);
+					}
+				});
+			}
+			catch (error) {
+				if (typeof(requestId) !== "undefined")
+					this._emitError(action, requestId, error);
+
+				console.error(error.stack || error);
+			}
+		});
     }
+
+	onActions(actions) {
+		for (let action in actions) {
+			if (!actions.hasOwnProperty(action))
+				continue;
+
+			this.onAction(action, actions[action]);
+		}
+	}
+
+	_emitError(action, id, error) {
+		const message = (error && error.clientMessage) || "Fatal Error";
+		this._socket.emit(`${action}:fail`, {message}, id);
+	}
 }
 
 

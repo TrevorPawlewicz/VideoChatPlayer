@@ -1,4 +1,4 @@
-import {Observable} from "rxjs";
+import {Observable, ReplaySubject} from "rxjs";
 
 export class ObservableSocket {
     get isConnected() { return this._state.isConnected; }
@@ -40,4 +40,97 @@ export class ObservableSocket {
     emit(event, arg) {
         this._socket.emit(event, arg);
     }
+
+    //-------------------------------
+    // (Emit) Client side:
+    emitAction$(action, arg) {
+        const id = this._nextRequestId++;
+		this._registerCallbacks(action);
+        //                                       like a promise:
+		const subject = this._requests[id] = new ReplaySubject(1);
+		this._socket.emit(action, arg, id);
+		return subject;
+	}
+
+	_registerCallbacks(action) {
+		if (this._actionCallbacks.hasOwnProperty(action))
+			return;
+
+		this._socket.on(action, (arg, id) => {
+			const request = this._popRequest(id);
+			if (!request)
+				return;
+
+			request.next(arg); // method on ObservableSocket
+			request.complete(); // method on ObservableSocket
+		});
+
+		this._socket.on(`${action}:fail`, (arg, id) => {
+			const request = this._popRequest(id);
+			if (!request)
+				return;
+
+			request.error(arg);
+		});
+
+		this._actionCallbacks[action] = true;
+	}
+
+	_popRequest(id) {
+		if (!this._requests.hasOwnProperty(id)) {
+			console.error(`Event with id ${id} was returned twice,
+                            or the server did not send back an ID!`);
+			return;
+		}
+
+		const request = this._requests[id];
+		delete this._requests[id];
+		return request;
+    } //-----------------------------------------------------------------------
+
+
+    //-------------------------------
+    // (On) Sever side:
+    onAction(action, callback) {
+        this._socket.on(action, (...args) => {
+            console.log(args);
+        });
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-----------------------------------------------------------------------------

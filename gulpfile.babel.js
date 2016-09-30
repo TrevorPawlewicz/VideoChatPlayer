@@ -9,7 +9,6 @@ const $ = require("gulp-load-plugins")();
 
 console.log(`===> in the gulp.babel.js file!`);
 
-
 // PUBLIC TASKS ---------------------------------------------------------------
 gulp.task("clean:server", callback => rimraf("./build", callback));
 gulp.task("clean:client", callback => rimraf("./public/build", callback));
@@ -64,7 +63,7 @@ function devServerReload () {
         watch: "./build",
         env: {
             "NODE_ENV": "development",
-            "USE_WEBPACK": true
+            "USE_WEBPACK": "true"
         }
     });
 };

@@ -1,3 +1,8 @@
+import $ from "jquery";
+import "moment-duration-format";
+
+import "shared/operators";
+
 import "./application.scss";
 // import EVERY export:
 import * as services from "./services";
@@ -19,8 +24,10 @@ import * as services from "./services";
 
 //---------------------------
 // Components
-
-
+require("./components/player/player");
+require("./components/users/users");
+require("./components/chat/chat");
+require("./components/playlist/playlist");
 
 
 //---------------------------

@@ -59,7 +59,10 @@ app.get("/", (req, res) => {
 
 //----------------------------------------------------------------------------
 // Modules
-
+const users = new UsersModule(io);
+const chat = new ChatModule(io, users);
+const playlist = new PlaylistModule(io, users, playlistRepository, videoServices);
+const modules = [users, chat, playlist];
 
 
 //----------------------------------------------------------------------------

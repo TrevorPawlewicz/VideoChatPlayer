@@ -18,7 +18,8 @@ gulp.task("clean", gulp.parallel("clean:server", "clean:client"));
 // development
 gulp.task("dev:server", gulp.series("clean:server", devServerBuild));
 gulp.task("dev", gulp
-    .series("clean",
+    .series(
+    "clean",
     devServerBuild,
     gulp.parallel(
         devServerWatch,
@@ -66,7 +67,7 @@ function devServerReload () {
             "USE_WEBPACK": true
         }
     });
-}
+};
 
 // production
 function prodServerBuild (callback) {
@@ -75,8 +76,6 @@ function prodServerBuild (callback) {
         callback(); // gulp needs to be told we are done with task
     });
 };
-
-
 
 
 // HELPERS --------------------------------------------------------------------

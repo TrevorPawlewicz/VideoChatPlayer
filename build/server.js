@@ -122,6 +122,12 @@
 	// socket
 	io.on("connection", function (socket) {
 	    console.log("===> Got connection from: " + socket.request.connection.remoteAddress);
+	
+	    // test-o import:-----------------------------------------------------------
+	    var index = 0;
+	    setInterval(function () {
+	        socket.emit("test", "On Index " + index++ + " ");
+	    }, 1000);
 	});
 	
 	//----------------------------------------------------------------------------
@@ -194,7 +200,7 @@
 	var webpack = __webpack_require__(8);
 	var ExtractTextPlugin = __webpack_require__(11);
 	
-	var vendorModules = ["jquery"]; // need lodash??????????????????????????????
+	var vendorModules = ["jquery", "lodash", "socket.io-client", "rxjs"];
 	
 	var dirname = path.resolve("./"); // work-around for webpack from server
 	
@@ -238,9 +244,9 @@
 	            }
 	        },
 	        module: {
-	            loaders: [{ test: /\.js$/, loader: "babel", exclude: /node_modules/ }, { test: /\.js$/, loader: "eslint", exclude: /node_modules/ }, { test: /\.(png|jpg|jpeg|gif|woff|tff|eot|svg|woff2)/, loader: "url-loader?limit=1024" }, cssLoader, sassLoader]
-	        }
-	
+	            loaders: [{ test: /\.js$/, loader: "babel", exclude: /node_modules/ }, { test: /\.js$/, loader: "eslint", exclude: /node_modules/ }, { test: /\.(png|jpg|jpeg|gif|woff|ttf|eot|svg|woff2)/, loader: "url-loader?limit=1024" }, cssLoader, sassLoader]
+	        },
+	        plugins: plugins
 	    };
 	}; //--------------------------------------------------------------------------
 	

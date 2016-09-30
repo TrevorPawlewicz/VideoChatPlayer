@@ -2,7 +2,7 @@ var path = require("path");
 var webpack = require("webpack");
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-const vendorModules = ["jquery"]; // need lodash??????????????????????????????
+const vendorModules = ["jquery", "lodash", "socket.io-client", "rxjs"];
 
 const dirname = path.resolve("./"); // work-around for webpack from server
 
@@ -47,15 +47,15 @@ function createConfig (isDebug) {
             }
         },
         module: {
-            loaders: [
-                { test: /\.js$/, loader: "babel", exclude: /node_modules/ },
-                { test: /\.js$/, loader: "eslint", exclude: /node_modules/ },
-                { test: /\.(png|jpg|jpeg|gif|woff|tff|eot|svg|woff2)/, loader: "url-loader?limit=1024" },
-                cssLoader,
-                sassLoader
-            ]
-        }
-
+			loaders: [
+				{ test: /\.js$/, loader: "babel", exclude: /node_modules/ },
+				{ test: /\.js$/, loader: "eslint", exclude: /node_modules/ },
+				{ test: /\.(png|jpg|jpeg|gif|woff|ttf|eot|svg|woff2)/, loader: "url-loader?limit=1024" },
+				cssLoader,
+				sassLoader
+			]
+		},
+		plugins: plugins
     };
 }; //--------------------------------------------------------------------------
 

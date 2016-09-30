@@ -14,7 +14,7 @@ export class UsersModule extends ModuleBase {
 		this._userList = [];
 		this._users = {};
 	}
-
+    // diff color for each username:
 	getColorForUsername(username) {
 		let hash = _.reduce(username,
 			(hash, ch) => ch.charCodeAt(0) + (hash << 6) + (hash << 16) - hash, 0);

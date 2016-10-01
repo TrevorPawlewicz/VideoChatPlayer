@@ -33,7 +33,7 @@ export class UsersModule extends ModuleBase {
 
 		return auth.isLoggedIn ? auth : null; // instead of undefined
 	}
-
+	// LOGIN:
 	loginClient$(client, username) {
 		username = username.trim();
 
@@ -59,7 +59,7 @@ export class UsersModule extends ModuleBase {
 		console.log(`User ${username} logged in`);
 		return Observable.of(auth);
 	}
-
+	// LOGOUT:
 	logoutClient(client) {
 		const auth = this.getUserForClient(client);
 		if (!auth)

@@ -7,7 +7,11 @@ import socketIo from "socket.io";
 import chalk from "chalk";
 import {Observable} from "rxjs";
 
+import "shared/operators";
 import {ObservableSocket} from "shared/observable-socket";
+
+import {FileRepository} from "./repositories/file";
+import {YoutubeService} from "./services/youtube";
 
 import {UsersModule} from "./modules/users";
 import {PlaylistModule} from "./modules/playlist";

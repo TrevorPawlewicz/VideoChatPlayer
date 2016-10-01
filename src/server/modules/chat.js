@@ -18,9 +18,9 @@ export class ChatModule extends ModuleBase {
 		message = message.trim();
 
 		const validator = validateSendMessage(user, message, type);
-		if (!validator.isValid)
+		if (!validator.isValid) {
 			return validator.throw$();
-
+		}
 		const newMessage = {
 			user: {name: user.name, color: user.color},
 			message: message,
@@ -30,9 +30,9 @@ export class ChatModule extends ModuleBase {
 
 		this._chatLog.push(newMessage);
 
-		if (this._chatLog.length >= MAX_HISTORY)
+		if (this._chatLog.length >= MAX_HISTORY) {
 			this._chatLog.splice(0, BATCH_SIZE);
-
+		}
 		this._io.emit("chat:added", newMessage);
 	}
 
@@ -46,9 +46,9 @@ export class ChatModule extends ModuleBase {
 				type = type || "normal";
 
 				const user = this._users.getUserForClient(client);
-				if (!user)
+				if (!user) {
 					return fail("You must be logged in");
-
+				}
 				this.sendMessage(user, message, type);
 			}
 		});

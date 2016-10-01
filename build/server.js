@@ -68,13 +68,21 @@
 	
 	var _observableSocket = __webpack_require__(7);
 	
+	var _users = __webpack_require__(8);
+	
+	var _playlist = __webpack_require__(13);
+	
+	var _chat = __webpack_require__(15);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } } // server.js = the entry into our application!!!!!!!!!!!!!!!!!
+	
 	
 	var isDevelopment = process.env.NODE_ENV !== "production";
 	
 	//----------------------------------------------------------------------------
 	// SETUP:
-	// server.js = the entry into our application!!!!!!!!!!!!!!!!!
 	var app = (0, _express2.default)();
 	var server = new _http2.default.Server(app);
 	var io = (0, _socket2.default)(server);
@@ -82,10 +90,10 @@
 	//----------------------------------------------------------------------------
 	// Client webpack
 	if (process.env.USE_WEBPACK === "true") {
-	    var webpackMiddleware = __webpack_require__(8),
-	        webpackHotMiddleware = __webpack_require__(9),
-	        webpack = __webpack_require__(10),
-	        clientConfig = __webpack_require__(11);
+	    var webpackMiddleware = __webpack_require__(17),
+	        webpackHotMiddleware = __webpack_require__(18),
+	        webpack = __webpack_require__(19),
+	        clientConfig = __webpack_require__(20);
 	
 	    var compiler = webpack(clientConfig);
 	    app.use(webpackMiddleware(compiler, {
@@ -117,12 +125,16 @@
 	        useExternalStyles: useExternalStyles
 	    });
 	});
+	// ---------------------------------------------------------------------------
+	// Services
+	var videoServices = [new YoutubeService("{fixme}")];
+	var playlistRepository = new FileRepository("./data/playlist.json");
 	
 	//----------------------------------------------------------------------------
-	// Modules
-	var users = new UsersModule(io);
-	var chat = new ChatModule(io, users);
-	var playlist = new PlaylistModule(io, users, playlistRepository, videoServices);
+	// Modules (ORDER MATTERS! some depend on others)
+	var users = new _users.UsersModule(io);
+	var chat = new _chat.ChatModule(io, users);
+	var playlist = new _playlist.PlaylistModule(io, users, playlistRepository, videoServices);
 	var modules = [users, chat, playlist];
 	
 	//----------------------------------------------------------------------------
@@ -197,7 +209,18 @@
 	    });
 	};
 	
-	startServer();
+	_rxjs.Observable.merge.apply(_rxjs.Observable, _toConsumableArray(modules.map(function (m) {
+	    return m.init$();
+	}))).subscribe({
+	    complete: function complete() {
+	        startServer();
+	    },
+	    error: function error(_error) {
+	        console.error("COuld not init module: " + (_error.stack || _error));
+	    }
+	});
+	
+	//startServer(); not needed because of the Observable.merge...
 	//----------------------------------------------------------------------------
 
 /***/ },
@@ -252,6 +275,8 @@
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 	
 	exports.clientMessage = clientMessage;
+	exports.fail = fail;
+	exports.success = success;
 	
 	var _rxjs = __webpack_require__(6);
 	
@@ -261,6 +286,15 @@
 		var error = new Error(message);
 		error.clientMessage = message;
 		return error;
+	}
+	
+	function fail(message) {
+		return _rxjs.Observable.throw({ clientMessage: message });
+	}
+	
+	var successObservable = _rxjs.Observable.empty();
+	function success() {
+		return successObservable;
 	}
 	
 	var ObservableSocket = exports.ObservableSocket = function () {
@@ -382,7 +416,6 @@
 				return request;
 			} //-----------------------------------------------------------------------
 	
-	
 			//-------------------------------
 			// (On) Sever side:
 	
@@ -457,26 +490,200 @@
 	
 		return ObservableSocket;
 	}();
-	
 	//-----------------------------------------------------------------------------
 
 /***/ },
 /* 8 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = require("webpack-dev-middleware");
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.UsersModule = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _lodash = __webpack_require__(9);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _rxjs = __webpack_require__(6);
+	
+	var _module = __webpack_require__(10);
+	
+	var _users = __webpack_require__(11);
+	
+	var _observableSocket = __webpack_require__(7);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var AuthContext = Symbol("AuthContext");
+	
+	var UsersModule = exports.UsersModule = function (_ModuleBase) {
+		_inherits(UsersModule, _ModuleBase);
+	
+		function UsersModule(io) {
+			_classCallCheck(this, UsersModule);
+	
+			var _this = _possibleConstructorReturn(this, (UsersModule.__proto__ || Object.getPrototypeOf(UsersModule)).call(this));
+	
+			_this._io = io;
+			_this._userList = [];
+			_this._users = {}; // who is logged in
+			return _this;
+		}
+		// diff color for each username:
+	
+	
+		_createClass(UsersModule, [{
+			key: "getColorForUsername",
+			value: function getColorForUsername(username) {
+				var hash = _lodash2.default.reduce(username, function (hash, ch) {
+					return ch.charCodeAt(0) + (hash << 6) + (hash << 16) - hash;
+				}, 0);
+	
+				hash = Math.abs(hash);
+				var hue = hash % 360,
+				    saturation = hash % 25 + 70,
+				    lightness = 100 - (hash % 15 + 35);
+	
+				return "hsl(" + hue + ", " + saturation + "%, " + lightness + "%)";
+			}
+		}, {
+			key: "getUserForClient",
+			value: function getUserForClient(client) {
+				var auth = client[AuthContext];
+				if (!auth) {
+					return null;
+				}
+	
+				return auth.isLoggedIn ? auth : null; // instead of undefined
+			}
+			// LOGIN:
+	
+		}, {
+			key: "loginClient$",
+			value: function loginClient$(client, username) {
+				username = username.trim();
+	
+				var validator = (0, _users.validateLogin)(username);
+				if (!validator.isValid) return validator.throw$();
+	
+				if (this._users.hasOwnProperty(username)) return (0, _observableSocket.fail)("Username " + username + " is already taken");
+	
+				var auth = client[AuthContext] || (client[AuthContext] = {});
+				if (auth.isLoggedIn) return (0, _observableSocket.fail)("You are already logged in");
+	
+				auth.name = username;
+				auth.color = this.getColorForUsername(username);
+				auth.isLoggedIn = true;
+	
+				this._users[username] = client;
+				this._userList.push(auth);
+	
+				this._io.emit("users:added", auth);
+				console.log("User " + username + " logged in");
+				return _rxjs.Observable.of(auth);
+			}
+			// LOGOUT:
+	
+		}, {
+			key: "logoutClient",
+			value: function logoutClient(client) {
+				var auth = this.getUserForClient(client);
+				if (!auth) return;
+	
+				var index = this._userList.indexOf(auth);
+				this._userList.splice(index, 1);
+				delete this._users[auth.name];
+				delete client[AuthContext];
+	
+				this._io.emit("users:removed", auth);
+				console.log("User " + auth.name + " logged out");
+			}
+		}, {
+			key: "registerClient",
+			value: function registerClient(client) {
+				var _this2 = this;
+	
+				client.onActions({
+					"users:list": function usersList() {
+						return _this2._userList;
+					},
+	
+					"auth:login": function authLogin(_ref) {
+						var name = _ref.name;
+	
+						return _this2.loginClient$(client, name);
+					},
+	
+					"auth:logout": function authLogout() {
+						_this2.logoutClient(client);
+					}
+				});
+	
+				client.on("disconnect", function () {
+					_this2.logoutClient(client);
+				});
+			}
+		}]);
+
+		return UsersModule;
+	}(_module.ModuleBase);
 
 /***/ },
 /* 9 */
 /***/ function(module, exports) {
 
-	module.exports = require("webpack-hot-middleware");
+	module.exports = require("lodash");
 
 /***/ },
 /* 10 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = require("webpack");
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.ModuleBase = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _rxjs = __webpack_require__(6);
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	/*eslint no-unused-vars: "off"*/
+	
+	var ModuleBase = exports.ModuleBase = function () {
+		function ModuleBase() {
+			_classCallCheck(this, ModuleBase);
+		}
+	
+		_createClass(ModuleBase, [{
+			key: "init$",
+			value: function init$() {
+				return _rxjs.Observable.empty();
+			}
+		}, {
+			key: "registerClient",
+			value: function registerClient(client) {}
+		}, {
+			key: "clientRegistered",
+			value: function clientRegistered(client) {}
+		}]);
+
+		return ModuleBase;
+	}();
 
 /***/ },
 /* 11 */
@@ -484,9 +691,595 @@
 
 	"use strict";
 	
-	var path = __webpack_require__(12);
-	var webpack = __webpack_require__(10);
-	var ExtractTextPlugin = __webpack_require__(13);
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.USERNAME_REGEX = undefined;
+	exports.validateLogin = validateLogin;
+	
+	var _validator = __webpack_require__(12);
+	
+	var USERNAME_REGEX = exports.USERNAME_REGEX = /^[\w\d_-]+$/;
+	
+	function validateLogin(username) {
+		var validator = new _validator.Validator();
+	
+		if (username.length >= 20) validator.error("Username must be fewer than 20 characters");
+	
+		if (!USERNAME_REGEX.test(username)) validator.error("Username can only contain numbers, digits, underscores and dashes");
+	
+		return validator;
+	}
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.Validator = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _rxjs = __webpack_require__(6);
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var Validator = exports.Validator = function () {
+		_createClass(Validator, [{
+			key: "isValid",
+			get: function get() {
+				return !this._errors.length;
+			}
+		}, {
+			key: "errors",
+			get: function get() {
+				return this._errors;
+			}
+		}, {
+			key: "message",
+			get: function get() {
+				return this._errors.join(", ");
+			}
+		}]);
+	
+		function Validator() {
+			_classCallCheck(this, Validator);
+	
+			this._errors = [];
+		}
+	
+		_createClass(Validator, [{
+			key: "error",
+			value: function error(message) {
+				this._errors.push(message);
+			}
+		}, {
+			key: "toObject",
+			value: function toObject() {
+				if (this.isValid) return {};
+	
+				return {
+					errors: this._errors,
+					message: this.message
+				};
+			}
+		}, {
+			key: "throw$",
+			value: function throw$() {
+				return _rxjs.Observable.throw({ clientMessage: this.message });
+			}
+		}]);
+
+		return Validator;
+	}();
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.PlaylistModule = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _rxjs = __webpack_require__(6);
+	
+	var _lodash = __webpack_require__(9);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _module = __webpack_require__(10);
+	
+	var _observableSocket = __webpack_require__(7);
+	
+	var _playlist = __webpack_require__(14);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var PlaylistModule = exports.PlaylistModule = function (_ModuleBase) {
+		_inherits(PlaylistModule, _ModuleBase);
+	
+		function PlaylistModule(io, usersModule, playlistRepository, videoServices) {
+			_classCallCheck(this, PlaylistModule);
+	
+			var _this = _possibleConstructorReturn(this, (PlaylistModule.__proto__ || Object.getPrototypeOf(PlaylistModule)).call(this));
+	
+			_this._io = io;
+			_this._users = usersModule;
+			_this._repository = playlistRepository;
+			_this._services = videoServices;
+	
+			_this._nextSourceId = 1;
+			_this._playlist = [];
+			_this._currentIndex = -1;
+			_this._currentSource = null;
+			_this._currentTime = 0;
+	
+			setInterval(_this._tickUpdateTime.bind(_this), 1000);
+			setInterval(_this._tickUpdateClients.bind(_this), 5000);
+			return _this;
+		}
+	
+		_createClass(PlaylistModule, [{
+			key: "init$",
+			value: function init$() {
+				return this._repository.getAll$().do(this.setPlaylist.bind(this));
+			}
+		}, {
+			key: "getSourceById",
+			value: function getSourceById(id) {
+				return _lodash2.default.find(this._playlist, { id: id });
+			}
+		}, {
+			key: "setPlaylist",
+			value: function setPlaylist(playlist) {
+				this._playlist = playlist;
+	
+				var _iteratorNormalCompletion = true;
+				var _didIteratorError = false;
+				var _iteratorError = undefined;
+	
+				try {
+					for (var _iterator = playlist[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+						var source = _step.value;
+	
+						source.id = this._nextSourceId++;
+					}
+				} catch (err) {
+					_didIteratorError = true;
+					_iteratorError = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion && _iterator.return) {
+							_iterator.return();
+						}
+					} finally {
+						if (_didIteratorError) {
+							throw _iteratorError;
+						}
+					}
+				}
+	
+				this._io.emit("playlist:list", this._playlist);
+			}
+		}, {
+			key: "setCurrentSource",
+			value: function setCurrentSource(source) {
+				if (source == null) {
+					this._currentSource = null;
+					this._currentIndex = this._currentTime = 0;
+				} else {
+					var newIndex = this._playlist.indexOf(source);
+					if (newIndex === -1) throw new Error("Cannot set current to source " + source.id + " / " + source.title + ", it was not found");
+	
+					this._currentTime = 0;
+					this._currentSource = source;
+					this._currentIndex = newIndex;
+				}
+	
+				this._io.emit("playlist:current", this._createCurrentEvent());
+				console.log("playlist: setting current to " + (source ? source.title : "{nothing}"));
+			}
+		}, {
+			key: "playNextSource",
+			value: function playNextSource() {
+				if (!this._playlist.length) {
+					this.setCurrentSource(null);
+					return;
+				}
+	
+				if (this._currentIndex + 1 >= this._playlist.length) this.setCurrentSource(this._playlist[0]);else this.setCurrentSource(this._playlist[this._currentIndex + 1]);
+			}
+		}, {
+			key: "addSourceFromUrl$",
+			value: function addSourceFromUrl$(url) {
+				var _this2 = this;
+	
+				var validator = (0, _playlist.validateAddSource)(url);
+				if (!validator.isValid) return validator.throw$();
+	
+				return new _rxjs.Observable(function (observer) {
+					var getSource$ = null;
+	
+					var _iteratorNormalCompletion2 = true;
+					var _didIteratorError2 = false;
+					var _iteratorError2 = undefined;
+	
+					try {
+						for (var _iterator2 = _this2._services[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+							var service = _step2.value;
+	
+							getSource$ = service.process$(url);
+	
+							if (getSource$) break;
+						}
+					} catch (err) {
+						_didIteratorError2 = true;
+						_iteratorError2 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion2 && _iterator2.return) {
+								_iterator2.return();
+							}
+						} finally {
+							if (_didIteratorError2) {
+								throw _iteratorError2;
+							}
+						}
+					}
+	
+					if (!getSource$) return (0, _observableSocket.fail)("No service accepted url " + url);
+	
+					getSource$.do(function (source) {
+						return _this2.addSource(source);
+					}).subscribe(observer);
+				});
+			}
+		}, {
+			key: "addSource",
+			value: function addSource(source) {
+				source.id = this._nextSourceId++;
+	
+				var insertIndex = 0,
+				    afterId = -1;
+	
+				if (this._currentSource) {
+					afterId = this._currentSource.id;
+					insertIndex = this._currentIndex + 1;
+				}
+	
+				this._playlist.splice(insertIndex, 0, source);
+				this._io.emit("playlist:added", { source: source, afterId: afterId });
+	
+				if (!this._currentSource) this.setCurrentSource(source);
+	
+				console.log("playlist: added " + source.title);
+			}
+		}, {
+			key: "_tickUpdateTime",
+			value: function _tickUpdateTime() {
+				if (this._currentSource == null) {
+					if (this._playlist.length) this.setCurrentSource(this._playlist[0]);
+				} else {
+					this._currentTime++;
+					if (this._currentTime > this._currentSource.totalTime + 2) this.playNextSource();
+				}
+			}
+		}, {
+			key: "_tickUpdateClients",
+			value: function _tickUpdateClients() {
+				this._io.emit("playlist:current", this._createCurrentEvent());
+			}
+		}, {
+			key: "_createCurrentEvent",
+			value: function _createCurrentEvent() {
+				return this._currentSource ? {
+					id: this._currentSource.id,
+					time: this._currentTime
+				} : {
+					id: null,
+					time: 0
+				};
+			}
+		}, {
+			key: "moveSource",
+			value: function moveSource(fromId, toId) {
+				var fromSource = this.getSourceById(fromId);
+				if (!fromSource) throw new Error("Could not find \"from\" source " + fromId);
+	
+				var toSource = null;
+				if (toId) {
+					toSource = this.getSourceById(toId);
+					if (!toSource) throw new Error("Could not find \"to\" source " + toId);
+				}
+	
+				var fromIndex = this._playlist.indexOf(fromSource);
+				this._playlist.splice(fromIndex, 1);
+	
+				var toIndex = toId ? this._playlist.indexOf(toSource) + 1 : 0;
+				this._playlist.splice(toIndex, 0, fromSource);
+	
+				if (this._currentSource) this._currentIndex = this._playlist.indexOf(this._currentSource);
+	
+				this._io.emit("playlist:moved", { fromId: fromId, toId: toId });
+				console.log("playlist: moved " + fromSource.title + " to " + (toSource ? "to after " + toSource.title : "to the beginning"));
+			}
+		}, {
+			key: "deleteSourceById",
+			value: function deleteSourceById(id) {
+				var source = this.getSourceById(id);
+				if (!source) throw new Error("Cannot find source " + id);
+	
+				var sourceIndex = this._playlist.indexOf(source);
+	
+				if (source == this._currentSource) if (this._playlist.length == 1) this.setCurrentSource(null);else this.playNextSource();
+	
+				this._playlist.splice(sourceIndex, 1);
+	
+				if (this._currentSource) this._currentIndex = this._playlist.indexOf(this._currentSource);
+	
+				this._io.emit("playlist:removed", { id: id });
+				console.log("playlist: deleted " + source.title);
+			}
+		}, {
+			key: "registerClient",
+			value: function registerClient(client) {
+				var _this3 = this;
+	
+				var isLoggedIn = function isLoggedIn() {
+					return _this3._users.getUserForClient(client) !== null;
+				};
+	
+				client.onActions({
+					"playlist:list": function playlistList() {
+						return _this3._playlist;
+					},
+	
+					"playlist:current": function playlistCurrent() {
+						return _this3._createCurrentEvent();
+					},
+	
+					"playlist:add": function playlistAdd(_ref) {
+						var url = _ref.url;
+	
+						if (!isLoggedIn()) return (0, _observableSocket.fail)("You must be logged in to do that");
+	
+						return _this3.addSourceFromUrl$(url);
+					},
+	
+					"playlist:set-current": function playlistSetCurrent(_ref2) {
+						var id = _ref2.id;
+	
+						if (!isLoggedIn()) return (0, _observableSocket.fail)("You must be logged in to do that");
+	
+						var source = _this3.getSourceById(id);
+						if (!source) return (0, _observableSocket.fail)("Cannot find source " + id);
+	
+						_this3.setCurrentSource(source);
+					},
+	
+					"playlist:move": function playlistMove(_ref3) {
+						var fromId = _ref3.fromId;
+						var toId = _ref3.toId;
+	
+						if (!isLoggedIn()) return (0, _observableSocket.fail)("You must be logged in to do that");
+	
+						_this3.moveSource(fromId, toId);
+					},
+	
+					"playlist:remove": function playlistRemove(_ref4) {
+						var id = _ref4.id;
+	
+						if (!isLoggedIn()) return (0, _observableSocket.fail)("You must be logged in to do that");
+	
+						_this3.deleteSourceById(id);
+					}
+	
+					// d57e70e236ba4f8d9ebbe1e5c215e656
+				});
+			}
+		}]);
+
+		return PlaylistModule;
+	}(_module.ModuleBase);
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.YOUTUBE_REGEXES = undefined;
+	exports.validateAddSource = validateAddSource;
+	
+	var _lodash = __webpack_require__(9);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _validator = __webpack_require__(12);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	var YOUTUBE_REGEXES = exports.YOUTUBE_REGEXES = [/https?:\/\/(?:www\.)?youtube\.com\/.*?v=(.*)$/, /https?:\/\/youtu\.be\/(.*)/];
+	
+	function validateAddSource(url) {
+		var validator = new _validator.Validator();
+		if (!_lodash2.default.some(YOUTUBE_REGEXES, function (r) {
+			return r.test(url);
+		})) validator.error("Invalid Url");
+	
+		return validator;
+	}
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.ChatModule = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _module = __webpack_require__(10);
+	
+	var _chat = __webpack_require__(16);
+	
+	var _observableSocket = __webpack_require__(7);
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var MAX_HISTORY = 100;
+	var BATCH_SIZE = 10;
+	
+	var ChatModule = exports.ChatModule = function (_ModuleBase) {
+		_inherits(ChatModule, _ModuleBase);
+	
+		function ChatModule(io, usersModule) {
+			_classCallCheck(this, ChatModule);
+	
+			var _this = _possibleConstructorReturn(this, (ChatModule.__proto__ || Object.getPrototypeOf(ChatModule)).call(this));
+	
+			_this._io = io;
+			_this._users = usersModule;
+			_this._chatLog = [];
+			return _this;
+		}
+	
+		_createClass(ChatModule, [{
+			key: "sendMessage",
+			value: function sendMessage(user, message, type) {
+				message = message.trim();
+	
+				var validator = (0, _chat.validateSendMessage)(user, message, type);
+				if (!validator.isValid) return validator.throw$();
+	
+				var newMessage = {
+					user: { name: user.name, color: user.color },
+					message: message,
+					time: new Date().getTime(),
+					type: type
+				};
+	
+				this._chatLog.push(newMessage);
+	
+				if (this._chatLog.length >= MAX_HISTORY) this._chatLog.splice(0, BATCH_SIZE);
+	
+				this._io.emit("chat:added", newMessage);
+			}
+		}, {
+			key: "registerClient",
+			value: function registerClient(client) {
+				var _this2 = this;
+	
+				client.onActions({
+					"chat:list": function chatList() {
+						return _this2._chatLog;
+					},
+	
+					"chat:add": function chatAdd(_ref) {
+						var message = _ref.message;
+						var type = _ref.type;
+	
+						type = type || "normal";
+	
+						var user = _this2._users.getUserForClient(client);
+						if (!user) return (0, _observableSocket.fail)("You must be logged in");
+	
+						_this2.sendMessage(user, message, type);
+					}
+				});
+			}
+		}]);
+
+		return ChatModule;
+	}(_module.ModuleBase);
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.MESSAGE_TYPES = undefined;
+	exports.validateSendMessage = validateSendMessage;
+	
+	var _lodash = __webpack_require__(9);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _validator = __webpack_require__(12);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	var MESSAGE_TYPES = exports.MESSAGE_TYPES = ["normal"];
+	
+	function validateSendMessage(user, message, type) {
+		var validator = new _validator.Validator();
+	
+		if (message.length > 50) validator.error("Message must be smaller than 50 characters");
+	
+		if (message.trim().length === 0) validator.error("Message cannot be empty");
+	
+		if (!_lodash2.default.includes(MESSAGE_TYPES, type)) validator.error("Invalid message type " + type);
+	
+		return validator;
+	}
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack-dev-middleware");
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack-hot-middleware");
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+	module.exports = require("webpack");
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	var path = __webpack_require__(21);
+	var webpack = __webpack_require__(19);
+	var ExtractTextPlugin = __webpack_require__(22);
 	
 	var vendorModules = ["jquery", "lodash", "socket.io-client", "rxjs"];
 	
@@ -543,13 +1336,13 @@
 	module.exports.create = createConfig;
 
 /***/ },
-/* 12 */
+/* 21 */
 /***/ function(module, exports) {
 
 	module.exports = require("path");
 
 /***/ },
-/* 13 */
+/* 22 */
 /***/ function(module, exports) {
 
 	module.exports = require("extract-text-webpack-plugin");

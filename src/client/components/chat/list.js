@@ -32,9 +32,9 @@ function serverStatusFactory({isConnected, isReconnecting, attempt}) {
 	else if (isReconnecting) statusMessage = `reconnecting (attempt ${attempt})`;
 	else statusMessage = "gg. it's over now";
 
-	if (statusMessage == null)
+	if (statusMessage == null) {
 		return null;
-
+	}
 	return $(`<li class="server-status" />`).append([
 		$(`<span class="author" />`).text("system"),
 		$(`<span class="message" />`).text(statusMessage),
@@ -43,9 +43,9 @@ function serverStatusFactory({isConnected, isReconnecting, attempt}) {
 }
 
 function userActionFactory({type, user}) {
-	if (type !== "add" && type !== "remove")
+	if (type !== "add" && type !== "remove") {
 		return null;
-
+	}
 	return $(`<li class="user-action ${type}" />`).append([
 		$(`<span class="author" />`).text(user.name).css("color", user.color),
 		$(`<span class="message" />`).text(type === "add" ? "joined" : "left"),

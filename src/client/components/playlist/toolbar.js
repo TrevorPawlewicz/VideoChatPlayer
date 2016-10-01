@@ -21,8 +21,9 @@ export class PlaylistToolbarComponent extends ElementComponent {
 			.filter(url => url && url.trim().length)
 			.flatMap(url => this._playlist.addSource$(url).catchWrap())
 			.compSubscribe(this, result => {
-				if (result && result.error)
+				if (result && result.error) {
 					alert(result.error.message || "Unknown Error");
+				}
 			});
 	}
 }

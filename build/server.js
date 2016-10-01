@@ -72,13 +72,13 @@
 	
 	var _file = __webpack_require__(9);
 	
-	var _youtube = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./services/youtube\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var _youtube = __webpack_require__(11);
 	
-	var _users = __webpack_require__(11);
+	var _users = __webpack_require__(17);
 	
-	var _playlist = __webpack_require__(16);
+	var _playlist = __webpack_require__(20);
 	
-	var _chat = __webpack_require__(18);
+	var _chat = __webpack_require__(21);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -96,10 +96,10 @@
 	//----------------------------------------------------------------------------
 	// Client webpack
 	if (process.env.USE_WEBPACK === "true") {
-	    var webpackMiddleware = __webpack_require__(20),
-	        webpackHotMiddleware = __webpack_require__(21),
-	        webpack = __webpack_require__(22),
-	        clientConfig = __webpack_require__(23);
+	    var webpackMiddleware = __webpack_require__(23),
+	        webpackHotMiddleware = __webpack_require__(24),
+	        webpack = __webpack_require__(25),
+	        clientConfig = __webpack_require__(26);
 	
 	    var compiler = webpack(clientConfig);
 	    app.use(webpackMiddleware(compiler, {
@@ -617,19 +617,224 @@
 	Object.defineProperty(exports, "__esModule", {
 		value: true
 	});
+	exports.YoutubeService = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _rxjs = __webpack_require__(6);
+	
+	var _moment = __webpack_require__(12);
+	
+	var _moment2 = _interopRequireDefault(_moment);
+	
+	var _lodash = __webpack_require__(13);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _request = __webpack_require__(14);
+	
+	var _playlist = __webpack_require__(15);
+	
+	var _observableSocket = __webpack_require__(8);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var YOUTUBE_ENDPOINT = "https://www.googleapis.com/youtube/v3";
+	
+	var YoutubeService = exports.YoutubeService = function () {
+		function YoutubeService(apiKey) {
+			_classCallCheck(this, YoutubeService);
+	
+			this._apiKey = apiKey;
+	
+			if (apiKey === "{fixme}") console.error("Please enter your own YouTube API key in server.js");
+		}
+	
+		_createClass(YoutubeService, [{
+			key: "process$",
+			value: function process$(url) {
+				if (this._apiKey === "{fixme}") {
+					console.error("Please enter your own YouTube API key in server.js");
+					return null;
+				}
+	
+				var match = (0, _lodash2.default)(_playlist.YOUTUBE_REGEXES).map(function (r) {
+					return url.match(r);
+				}).find(function (a) {
+					return a != null;
+				});
+	
+				return match ? this.getSourceFromId$(match[1]) : null;
+			}
+		}, {
+			key: "getSourceFromId$",
+			value: function getSourceFromId$(id) {
+				return (0, _request.getJson$)(this._buildGetVideoUrl(id)).flatMap(function (data) {
+					if (!data || data.items.length != 1) return (0, _observableSocket.fail)("Cannot locate youtube video " + id);
+	
+					var _data$items$ = data.items[0];
+					var id = _data$items$.id;
+					var snippet = _data$items$.snippet;
+					var contentDetails = _data$items$.contentDetails;
+	
+					return _rxjs.Observable.of({
+						type: "youtube",
+						thumb: snippet.thumbnails.default.url,
+						url: id,
+						title: snippet.title || "{No Title}",
+						totalTime: _moment2.default.duration(contentDetails.duration).asSeconds()
+					});
+				});
+			}
+		}, {
+			key: "_buildGetVideoUrl",
+			value: function _buildGetVideoUrl(id) {
+				return YOUTUBE_ENDPOINT + "/videos?id=" + id + "&key=" + this._apiKey + "&part=snippet,contentDetails,statistics,status";
+			}
+		}]);
+
+		return YoutubeService;
+	}();
+
+/***/ },
+/* 12 */
+/***/ function(module, exports) {
+
+	module.exports = require("moment");
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+	module.exports = require("lodash");
+
+/***/ },
+/* 14 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.YOUTUBE_REGEXES = undefined;
+	exports.validateAddSource = validateAddSource;
+	
+	var _lodash = __webpack_require__(13);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _validator = __webpack_require__(16);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	var YOUTUBE_REGEXES = exports.YOUTUBE_REGEXES = [/https?:\/\/(?:www\.)?youtube\.com\/.*?v=(.*)$/, /https?:\/\/youtu\.be\/(.*)/];
+	
+	function validateAddSource(url) {
+		var validator = new _validator.Validator();
+		if (!_lodash2.default.some(YOUTUBE_REGEXES, function (r) {
+			return r.test(url);
+		})) validator.error("Invalid Url");
+	
+		return validator;
+	}
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.Validator = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _rxjs = __webpack_require__(6);
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var Validator = exports.Validator = function () {
+		_createClass(Validator, [{
+			key: "isValid",
+			get: function get() {
+				return !this._errors.length;
+			}
+		}, {
+			key: "errors",
+			get: function get() {
+				return this._errors;
+			}
+		}, {
+			key: "message",
+			get: function get() {
+				return this._errors.join(", ");
+			}
+		}]);
+	
+		function Validator() {
+			_classCallCheck(this, Validator);
+	
+			this._errors = [];
+		}
+	
+		_createClass(Validator, [{
+			key: "error",
+			value: function error(message) {
+				this._errors.push(message);
+			}
+		}, {
+			key: "toObject",
+			value: function toObject() {
+				if (this.isValid) return {};
+	
+				return {
+					errors: this._errors,
+					message: this.message
+				};
+			}
+		}, {
+			key: "throw$",
+			value: function throw$() {
+				return _rxjs.Observable.throw({ clientMessage: this.message });
+			}
+		}]);
+
+		return Validator;
+	}();
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
 	exports.UsersModule = undefined;
 	
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 	
-	var _lodash = __webpack_require__(12);
+	var _lodash = __webpack_require__(13);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
 	var _rxjs = __webpack_require__(6);
 	
-	var _module = __webpack_require__(13);
+	var _module = __webpack_require__(18);
 	
-	var _users = __webpack_require__(14);
+	var _users = __webpack_require__(19);
 	
 	var _observableSocket = __webpack_require__(8);
 	
@@ -756,13 +961,7 @@
 	}(_module.ModuleBase);
 
 /***/ },
-/* 12 */
-/***/ function(module, exports) {
-
-	module.exports = require("lodash");
-
-/***/ },
-/* 13 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -802,7 +1001,7 @@
 	}();
 
 /***/ },
-/* 14 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -813,7 +1012,7 @@
 	exports.USERNAME_REGEX = undefined;
 	exports.validateLogin = validateLogin;
 	
-	var _validator = __webpack_require__(15);
+	var _validator = __webpack_require__(16);
 	
 	var USERNAME_REGEX = exports.USERNAME_REGEX = /^[\w\d_-]+$/;
 	
@@ -828,73 +1027,7 @@
 	}
 
 /***/ },
-/* 15 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	
-	Object.defineProperty(exports, "__esModule", {
-		value: true
-	});
-	exports.Validator = undefined;
-	
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-	
-	var _rxjs = __webpack_require__(6);
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	var Validator = exports.Validator = function () {
-		_createClass(Validator, [{
-			key: "isValid",
-			get: function get() {
-				return !this._errors.length;
-			}
-		}, {
-			key: "errors",
-			get: function get() {
-				return this._errors;
-			}
-		}, {
-			key: "message",
-			get: function get() {
-				return this._errors.join(", ");
-			}
-		}]);
-	
-		function Validator() {
-			_classCallCheck(this, Validator);
-	
-			this._errors = [];
-		}
-	
-		_createClass(Validator, [{
-			key: "error",
-			value: function error(message) {
-				this._errors.push(message);
-			}
-		}, {
-			key: "toObject",
-			value: function toObject() {
-				if (this.isValid) return {};
-	
-				return {
-					errors: this._errors,
-					message: this.message
-				};
-			}
-		}, {
-			key: "throw$",
-			value: function throw$() {
-				return _rxjs.Observable.throw({ clientMessage: this.message });
-			}
-		}]);
-
-		return Validator;
-	}();
-
-/***/ },
-/* 16 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -908,15 +1041,15 @@
 	
 	var _rxjs = __webpack_require__(6);
 	
-	var _lodash = __webpack_require__(12);
+	var _lodash = __webpack_require__(13);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
-	var _module = __webpack_require__(13);
+	var _module = __webpack_require__(18);
 	
 	var _observableSocket = __webpack_require__(8);
 	
-	var _playlist = __webpack_require__(17);
+	var _playlist = __webpack_require__(15);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -1214,38 +1347,7 @@
 	}(_module.ModuleBase);
 
 /***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	
-	Object.defineProperty(exports, "__esModule", {
-		value: true
-	});
-	exports.YOUTUBE_REGEXES = undefined;
-	exports.validateAddSource = validateAddSource;
-	
-	var _lodash = __webpack_require__(12);
-	
-	var _lodash2 = _interopRequireDefault(_lodash);
-	
-	var _validator = __webpack_require__(15);
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-	
-	var YOUTUBE_REGEXES = exports.YOUTUBE_REGEXES = [/https?:\/\/(?:www\.)?youtube\.com\/.*?v=(.*)$/, /https?:\/\/youtu\.be\/(.*)/];
-	
-	function validateAddSource(url) {
-		var validator = new _validator.Validator();
-		if (!_lodash2.default.some(YOUTUBE_REGEXES, function (r) {
-			return r.test(url);
-		})) validator.error("Invalid Url");
-	
-		return validator;
-	}
-
-/***/ },
-/* 18 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -1257,9 +1359,9 @@
 	
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 	
-	var _module = __webpack_require__(13);
+	var _module = __webpack_require__(18);
 	
-	var _chat = __webpack_require__(19);
+	var _chat = __webpack_require__(22);
 	
 	var _observableSocket = __webpack_require__(8);
 	
@@ -1339,7 +1441,7 @@
 	}(_module.ModuleBase);
 
 /***/ },
-/* 19 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -1350,11 +1452,11 @@
 	exports.MESSAGE_TYPES = undefined;
 	exports.validateSendMessage = validateSendMessage;
 	
-	var _lodash = __webpack_require__(12);
+	var _lodash = __webpack_require__(13);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
-	var _validator = __webpack_require__(15);
+	var _validator = __webpack_require__(16);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -1376,32 +1478,32 @@
 	}
 
 /***/ },
-/* 20 */
+/* 23 */
 /***/ function(module, exports) {
 
 	module.exports = require("webpack-dev-middleware");
 
 /***/ },
-/* 21 */
+/* 24 */
 /***/ function(module, exports) {
 
 	module.exports = require("webpack-hot-middleware");
 
 /***/ },
-/* 22 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("webpack");
 
 /***/ },
-/* 23 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 	
-	var path = __webpack_require__(24);
-	var webpack = __webpack_require__(22);
-	var ExtractTextPlugin = __webpack_require__(25);
+	var path = __webpack_require__(27);
+	var webpack = __webpack_require__(25);
+	var ExtractTextPlugin = __webpack_require__(28);
 	
 	var vendorModules = ["jquery", "lodash", "socket.io-client", "rxjs", "moment", "moment-duration-format"];
 	
@@ -1458,13 +1560,13 @@
 	module.exports.create = createConfig;
 
 /***/ },
-/* 24 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = require("path");
 
 /***/ },
-/* 25 */
+/* 28 */
 /***/ function(module, exports) {
 
 	module.exports = require("extract-text-webpack-plugin");

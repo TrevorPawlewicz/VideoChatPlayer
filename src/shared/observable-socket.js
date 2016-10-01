@@ -6,6 +6,15 @@ export function clientMessage(message) {
 	return error;
 }
 
+export function fail(message) {
+	return Observable.throw({clientMessage: message});
+}
+
+let successObservable = Observable.empty();
+export function success() {
+	return successObservable;
+}
+
 export class ObservableSocket {
     get isConnected() { return this._state.isConnected; }
     get isReconnecting() { return this._state.isReconnecting; }
@@ -93,7 +102,6 @@ export class ObservableSocket {
 		delete this._requests[id];
 		return request;
     } //-----------------------------------------------------------------------
-
 
     //-------------------------------
     // (On) Sever side:

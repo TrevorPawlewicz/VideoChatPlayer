@@ -12,7 +12,7 @@ export class UsersModule extends ModuleBase {
 		super();
 		this._io = io;
 		this._userList = [];
-		this._users = {};
+		this._users = {}; // who is logged in
 	}
     // diff color for each username:
 	getColorForUsername(username) {
@@ -29,10 +29,9 @@ export class UsersModule extends ModuleBase {
 
 	getUserForClient(client) {
 		const auth = client[AuthContext];
-		if (!auth)
-			return null;
+		if (!auth) { return null; }
 
-		return auth.isLoggedIn ? auth : null;
+		return auth.isLoggedIn ? auth : null; // instead of undefined
 	}
 
 	loginClient$(client, username) {
